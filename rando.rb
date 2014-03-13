@@ -1,4 +1,5 @@
 require 'chunky_png'
+require 'digest'
 
 WIDTH = 320
 HEIGHT = 240
@@ -34,8 +35,8 @@ class ChunkyPNG::Image
   end
 end
 
-ITERATIONS.times do |i|
+ITERATIONS.times do
   image = ChunkyPNG::Image.random(WIDTH, HEIGHT)
-  image.save("images/#{i}.png")
-  print '.' if i % 10 == 0
+  hash = Digest::SHA256.hexdigest(image.to_blob)
+  image.save("images/#{hash}.png")
 end

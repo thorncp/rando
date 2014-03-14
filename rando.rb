@@ -1,9 +1,11 @@
 require 'chunky_png'
 require 'digest'
+require 'thread'
 
 WIDTH = 320
 HEIGHT = 240
 ITERATIONS = 100
+THREADS = 4
 
 module ChunkyPNG::Color
   def self.random
@@ -35,8 +37,20 @@ class ChunkyPNG::Image
   end
 end
 
-ITERATIONS.times do
-  image = ChunkyPNG::Image.random(WIDTH, HEIGHT)
-  hash = Digest::SHA256.hexdigest(image.to_blob)
-  image.save("images/#{hash}.png")
+# Workaround for thread safety issues in SortedSet initialization
+# See: https://github.com/celluloid/timers/issues/20
+SortedSet.new
+
+chunk_size = ITERATIONS / THREADS
+
+threads = THREADS.times.map do
+  Thread.new do
+    chunk_size.times do
+      image = ChunkyPNG::Image.random(WIDTH, HEIGHT)
+      hash = Digest::SHA256.hexdigest(image.to_blob)
+      image.save("images/#{hash}.png")
+    end
+  end
 end
+
+threads.map(&:join)

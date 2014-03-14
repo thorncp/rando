@@ -1,11 +1,35 @@
 require 'chunky_png'
 require 'digest'
 require 'thread'
+require 'optparse'
+require 'ostruct'
 
-WIDTH = 320
-HEIGHT = 240
-ITERATIONS = 100
-THREADS = 4
+options = OpenStruct.new(width: 320, height: 240, iterations: 100, threads: 4)
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: ruby #{__FILE__} [options]"
+
+  opts.on("-w", "--width WIDTH", Integer, "Image width. Defaults to #{options.width}.") do |width|
+    options.width = width
+  end
+
+  opts.on("-h", "--height HEIGHT", Integer, "Image height. Defaults to #{options.height}.") do |height|
+    options.height = height
+  end
+
+  opts.on("-i", "--iterations ITERATIONS", Integer, "Number of images to generate. Defaults to #{options.iterations}.") do |iterations|
+    options.iterations = iterations
+  end
+
+  opts.on("-t", "--threads THREADS", Integer, "Number of threads to use. Defaults to #{options.threads}.") do |threads|
+    options.threads = threads
+  end
+
+  opts.on_tail("--help", "Show this message") do
+    puts opts
+    exit
+  end
+end.parse!
 
 module ChunkyPNG::Color
   def self.random
@@ -41,12 +65,12 @@ end
 # See: https://github.com/celluloid/timers/issues/20
 SortedSet.new
 
-chunk_size = ITERATIONS / THREADS
+chunk_size = options.iterations / options.threads
 
-threads = THREADS.times.map do
+threads = options.threads.times.map do
   Thread.new do
     chunk_size.times do
-      image = ChunkyPNG::Image.random(WIDTH, HEIGHT)
+      image = ChunkyPNG::Image.random(options.width, options.height)
       hash = Digest::SHA256.hexdigest(image.to_blob)
       image.save("images/#{hash}.png")
     end
